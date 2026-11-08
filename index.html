@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Procvičování: IS, Databáze, Programování</title>
+<style>
+  :root{
+    --bg:#f6f5f1; --card:#ffffff; --ink:#1f1f1c; --muted:#6b6a63; --line:#e3e1d9;
+    --accent:#2f5d50; --accent-ink:#ffffff; --good:#2e7d4f; --bad:#b3402f; --chip:#ecebe4;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#1a1a18; --card:#242422; --ink:#ecebe5; --muted:#a09f96; --line:#363632;
+      --accent:#6fb59f; --accent-ink:#10201b; --good:#6fc28f; --bad:#e07b69; --chip:#2e2e2b; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  .wrap{max-width:720px;margin:0 auto;padding:20px 16px 48px}
+  h1{font-size:1.35rem;margin:4px 0 2px}
+  .sub{color:var(--muted);margin:0 0 16px;font-size:.95rem}
+  .row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+  .chip{border:1px solid var(--line);background:var(--chip);color:var(--ink);padding:7px 12px;border-radius:999px;font:inherit;font-size:.9rem;cursor:pointer}
+  .chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+  .stats{display:flex;justify-content:space-between;color:var(--muted);font-size:.9rem;margin:8px 0}
+  .bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-bottom:16px}
+  .bar>i{display:block;height:100%;background:var(--accent);width:0;transition:width .25s}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 20px;min-height:220px;display:flex;flex-direction:column;cursor:pointer}
+  .tag{font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+  .q{font-size:1.2rem;font-weight:600;margin:0 0 14px}
+  .a{border-top:1px dashed var(--line);padding-top:14px;margin-top:auto;white-space:pre-line}
+  .hint{color:var(--muted);font-size:.9rem;margin-top:auto}
+  .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+  .nav{display:flex;gap:10px;margin-top:10px}
+  button.btn{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:12px;border-radius:10px;cursor:pointer;flex:1}
+  button.btn:disabled{opacity:.45;cursor:default}
+  .good{border-color:var(--good);color:var(--good)}
+  .bad{border-color:var(--bad);color:var(--bad)}
+  .link{background:none;border:0;color:var(--muted);text-decoration:underline;cursor:pointer;font:inherit;font-size:.88rem;padding:8px 0}
+  .done{text-align:center;padding:40px 10px}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Procvičování pojmů</h1>
+  <p class="sub" id="total"></p>
+
+  <div class="row" id="sections"></div>
+  <div class="row">
+    <button class="chip" id="onlyUnknown" aria-pressed="false">Jen ty, které neumím</button>
+    <button class="chip" id="shuffle" aria-pressed="false">Náhodné pořadí</button>
+  </div>
+
+  <div class="stats"><span id="pos"></span><span id="score"></span></div>
+  <div class="bar"><i id="fill"></i></div>
+
+  <div id="deck">
+    <div class="card" id="card" tabindex="0" role="button" aria-label="Otočit kartu">
+      <div class="tag" id="tag"></div>
+      <p class="q" id="q"></p>
+      <div class="hint" id="hint">Klikni nebo stiskni mezerník pro odpověď</div>
+      <div class="a" id="a" hidden></div>
+    </div>
+    <div class="actions" id="actions" hidden>
+      <button class="btn bad" id="no">Neumím</button>
+      <button class="btn good" id="yes">Umím</button>
+    </div>
+    <div class="nav">
+      <button class="btn" id="prev">← Předchozí</button>
+      <button class="btn" id="next">Další →</button>
+    </div>
+  </div>
+
+  <div class="done card" id="done" hidden style="cursor:default">
+    <h2>Hotovo</h2>
+    <p id="doneText"></p>
+    <button class="btn" id="restart">Začít znovu</button>
+  </div>
+
+  <div style="text-align:center;margin-top:18px"><button class="link" id="reset">Smazat uložený postup</button></div>
+</div>
+
+<script>
+const CARDS = [
+// ================= INFORMATION SYSTEMS =================
+["is","What are decisions?","Choices between alternatives."],
+["is","What do you need to make a decision?","Information about the problem and the alternatives."],
+["is","What do you need to make a good decision?","Good information."],
+["is","What is good information?","Accurate, complete, economical, reliable, flexible, relevant, simple, timely, verifiable, accessible, secure."],
+["is","What is the purpose of an information system?","To provide good information."],
+["is","What are the main functions of an IS?","Presenting, collecting, storing, processing, transmitting information."],
+["is","What is needed so that an information system can provide these functions? (main components)","Technologies (hardware, software, databases, telecommunications), people, procedures."],
+["is","What is IS development?","Creating or modifying systems."],
+["is","What is the systems development life cycle (SDLC)?","All activities related to a system."],
+["is","What is the purpose of an SDLC methodology?","Defines phases, their outputs, order and transitions."],
+["is","What is the linear model of development called?","The Waterfall model."],
+["is","What are the advantages and disadvantages of the Waterfall model?","+ clear structure, easy management\n− slow, inflexible to changing requirements"],
+["is","What are rapid approaches?","Agile, RAD: fast, prototypes, feedback; iterative or incremental."],
+["is","What are the typical phases in an IS development project?","1. Investigation\n2. Analysis\n3. Design\n4. Implementation\n5. Maintenance and support"],
+["is","Systems investigation (survey)?","Scope, goals, constraints, feasibility analysis."],
+["is","Analysis?","Requirements, essential model, \"what?\". Structured: process and data models. Object-oriented: data and functions in objects."],
+["is","Design?","\"How?\" the system will perform the analyzed functions."],
+["is","Implementation?","Bringing the system into operation: purchase, install, train, integrate, test."],
+["is","Maintenance and support?","Improving the system, solving problems."],
+
+// ================= DATABASES =================
+["db","What is a database?","A place where data is stored (sometimes also an application organizing it into fields, records, files)."],
+["db","How are databases relevant to information systems?","They hold the data the system presents and processes."],
+["db","What is data?","Raw, unorganized facts (numbers, letters, names, dates, symbols)."],
+["db","What is information?","Processed, structured data in a context; it reduces uncertainty."],
+["db","What is knowledge?","Organized, remembered information used for decisions."],
+["db","Have you ever created an application that needed to store some data?","(Personal answer.) E.g. a small app saving data to a file."],
+["db","How was the data stored?","Usually in a plain file (text, CSV)."],
+["db","What is the simplest way to store data?","A plain file."],
+["db","What problems were related to your solution?","Redundancy, no security or backup, hard sharing, slow searching."],
+["db","What if you decided to change the format of the stored data?","Every program reading the file must be rewritten."],
+["db","What is a DBMS and what handles these problems?","A software package separating data from applications; it handles storage, access, security and integrity."],
+["db","What functions does a DBMS provide?","Querying, inserting, updating, deleting; security, integrity, backup, recovery, data dictionary; interface for applications."],
+["db","What benefits does separating data from applications bring?","Flexible access, protection, controlled redundancy and integrity, better sharing, reliability, performance, programmer productivity."],
+["db","What do you need to do before you can prepare a database for storing data?","Create a data model."],
+["db","What are data models?","Descriptions of data structure and how it is accessed."],
+["db","What types of data models can we distinguish?","Logical (what data and relationships) and physical (implementation in a specific system)."],
+["db","What do logical data models contain? Give a few examples.","Entities, attributes, relationships: e.g. Customer, Order, \"customer places order\"."],
+["db","What are the common data models?","Hierarchical (tree), network (multiple parents), relational (tables), object-oriented."],
+["db","Which data model is the most common today?","Relational."],
+["db","Relational databases are based on set theory. Explain.","A relation is a set of rows; operations (select, project, join, union) come from set theory."],
+["db","How is data organized in relational databases?","Tables: table = entity, row = instance, column = attribute; allowed values = domain."],
+["db","How are relationships represented?","By foreign keys referencing primary keys."],
+["db","What steps would you recommend when creating a data model?","1. Identify entities\n2. Find subtype-supertype structures\n3. Determine relationships\n4. Set cardinality\n5. Set optionality\n6. Choose primary and alternate keys\n7. Replace M:N with intersection entities\n8. Add attributes\n9. Set value rules"],
+["db","When does a subtype-supertype structure make sense? What is its purpose?","When entities share attributes (Student, Teacher → Person); avoids redundancy."],
+["db","What is cardinality? What types exist? Give examples.","Number of related instances.\n1:1 person-passport\n1:N customer-orders\nM:N students-courses"],
+["db","What is optionality? Give examples of mandatory and optional relationships.","Whether participation is required.\nMandatory: an order needs a customer.\nOptional: a customer may have no orders."],
+["db","Why identify primary and alternate keys?","They identify rows uniquely and link tables."],
+["db","Why favor single-attribute primary keys over multiple-attribute ones?","Simpler, shorter, faster to join and reference."],
+["db","Why make the primary key of subtypes the same as the supertype's?","So a subtype row is directly linked to its supertype row."],
+["db","Why replace many-to-many relations by intersection entities?","Relational tables cannot hold M:N directly; the intersection table splits it into two 1:N."],
+["db","Give examples of rules for attribute values.","Unique email, NOT NULL name, age between 0 and 120."],
+["db","What are the basic operations with a database?","Data definition, insert/update/delete, querying, transaction control, data control."],
+["db","Data definition operations?","Create, alter, drop objects (databases, users, tables, indexes...)."],
+["db","Give examples of selecting, projecting and joining.","Select = rows (age > 30)\nProject = columns (name, city)\nJoin = combine tables (customers + orders)"],
+["db","What is a transaction? Give an example.","A group of operations that all succeed or all fail, e.g. a money transfer."],
+["db","How do you work with transactions?","Start, run operations, then COMMIT (save) or ROLLBACK (undo)."],
+["db","What is data control?","Granting or revoking privileges to objects and operations."],
+["db","How can we communicate with different database systems uniformly?","With SQL."],
+["db","What are the advantages of SQL standardization?","Portable skills and code, less vendor lock-in."],
+["db","What are typical SQL statements and how are they classified?","DQL: select\nDML: insert, update, delete\nDDL: create, alter, drop, truncate\nDCL: grant, revoke\nTCL: commit, rollback, savepoint"],
+["db","Why do we need Not Only SQL (NoSQL) databases?","Flexible schema, unstructured data, horizontal scalability, big data."],
+["db","What are the selected NoSQL types?","Document (MongoDB), key-value (Redis), graph (Neo4j), column-family (Cassandra)."],
+["db","Document databases: use?","Store JSON/XML; content management."],
+["db","Key-value stores: use?","Ultra fast access; caching."],
+["db","Graph databases: use?","Social networks; fast navigation of complex relationships."],
+["db","Column-family stores: use?","Sparse or time-series data; massive horizontal scalability."],
+
+// ================= QUESTIONS AND TASKS 1-19 =================
+["tasks","1. What role do databases play in information systems?","They store the data the system presents and processes."],
+["tasks","2. Can databases be involved in data processing?","Yes, via queries and database applications."],
+["tasks","3. How can data be transformed into information?","By processing, structuring and presenting it in context."],
+["tasks","4. What does DBMS stand for?","Database Management System."],
+["tasks","5. What problems can be eliminated when using a DBMS compared to direct access to a database?","Data dependence on applications, redundancy, unauthorized access, data loss, integrity violations."],
+["tasks","6. How can database systems increase programmers' productivity?","The DBMS handles storage, security and backup; data changes need no code rewrite."],
+["tasks","7. Describe a difference between logical and physical models.","Logical: what data and relationships. Physical: how implemented in a given system."],
+["tasks","8. What are data models?","Descriptions of data structure and access."],
+["tasks","9. What are typical components of data models? Use examples.","Entities (Customer), attributes (name), relationships (places Order)."],
+["tasks","10. On what are relational databases based?","The mathematical relation (set theory)."],
+["tasks","11. How is data organized in relational databases?","In tables: rows = instances, columns = attributes."],
+["tasks","12. What is the purpose of keys? When are they especially important?","Unique identification and linking tables; vital for relationships and joins."],
+["tasks","13. What relationship characteristics are important? Use examples.","Cardinality (1:N customer-orders) and optionality (customer may have no orders)."],
+["tasks","14. What attribute characteristics are important? Use examples.","Uniqueness (email), optionality (NOT NULL), data type, value checks (age > 0)."],
+["tasks","15. What are the basic operations with data?","Definition, modification, querying, transaction control, data control."],
+["tasks","16. What are the basic query operations?","Selecting, projecting, joining."],
+["tasks","17. What is SQL?","The standard language for accessing and manipulating databases (ANSI, 1986)."],
+["tasks","18. What are the basic SQL statement classes?","DQL, DML, DDL, DCL, TCL."],
+["tasks","19. Create a simple model of two entities and a relationship. Describe the process. Define a few queries.","Customer(customer_id PK, name, city)\nOrder(order_id PK, order_date, amount, customer_id FK)\n1 customer : N orders\n\nSELECT * FROM orders WHERE customer_id = 5;\nSELECT c.name, o.amount FROM customer c JOIN orders o ON c.customer_id = o.customer_id;"],
+
+// ================= PROGRAMMING =================
+["prog","What are the problem solving phases?","Intelligence (analyze problem), design (find a way), choice (pick a solution)."],
+["prog","What are the approaches to solution design?","Choose an existing solution or design a new one."],
+["prog","Computer vs. human in problem solving?","Computers: faster, store more, don't tire, cheaper, but not intelligent."],
+["prog","What is an algorithm?","A sequence of operations that solves a problem."],
+["prog","What are the characteristics of an algorithm?","Deterministic, finite, universal, repeatable, comprehensible."],
+["prog","How can an algorithm be coded?","Verbally, graphically, flowchart, structured language, math, programming language."],
+["prog","What are programming languages?","Languages directly understood by computers; a program is a set of statements."],
+["prog","What is an expression?","Operators, operands and function calls that evaluate to a value."],
+["prog","What are the characteristics of operators?","Arity, priority, associativity."],
+["prog","What are the operator types?","Arithmetic, relational, logical, assignment, conditional, bitwise, string, reference."],
+["prog","What are the basic program structures?","Sequence, branch, loop."],
+["prog","What loop types exist?","Conditional (while, do-while) and for loop."],
+["prog","What is a variable?","A named memory place with a type and changeable value."],
+["prog","What does a data type define?","Allowed values and operations."],
+["prog","What are the most common data types?","Integer, real, string, Boolean, enumerated, list."],
+["prog","What are constants and why use them?","Unchanging values; easier changes, better readability."],
+["prog","What are identifiers?","Unique names of objects within a scope."],
+["prog","What is a subroutine?","A named set of statements callable from several places."],
+["prog","What are the benefits of subroutines?","Reusability, easy modification, readability."],
+["prog","What are the types of subroutines?","Function (returns a value), procedure (no value), method (belongs to an object or class)."],
+["prog","What are subroutine parameters for?","Exchanging values with the subroutine's environment."],
+["prog","What are comments for?","Explaining code and easing navigation."],
+["prog","What is the object-oriented approach?","Programs built from objects combining data and behavior."],
+["prog","What are the core OOP concepts?","Class (blueprint), object (instance), encapsulation, inheritance, polymorphism."],
+["prog","What is a library or module and what does it enable?","A reusable collection of resources with a documented interface; reuse, easy changes, manageability, faster development, easy distribution."],
+["prog","How can code be executed?","Compiled (translated once to machine code) or interpreted (run by an interpreter every time)."]
+];
+
+const SECTIONS = {is:"Informační systémy", db:"Databáze", tasks:"Úlohy 1–19", prog:"Programování"};
+const KEY = "procvicovani-v2";
+
+let known = {};
+try { known = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch(e) { known = {}; }
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(known)); } catch(e) {} }
+
+const state = { sections:new Set(Object.keys(SECTIONS)), onlyUnknown:false, shuffle:false, list:[], i:0, shown:false };
+const $ = id => document.getElementById(id);
+function cid(c){ return c[0] + "|" + c[1]; }
+
+$("total").textContent = "Celkem " + CARDS.length + " otázek. Klikni na kartu pro odpověď, pak označ, jestli jsi to uměl(a).";
+
+function build(){
+  let list = CARDS.filter(c => state.sections.has(c[0]));
+  if (state.onlyUnknown) list = list.filter(c => known[cid(c)] !== 1);
+  if (state.shuffle) list = list.map(c => [Math.random(), c]).sort((a,b) => a[0]-b[0]).map(x => x[1]);
+  state.list = list; state.i = 0; state.shown = false;
+  render();
+}
+
+function render(){
+  const total = state.list.length;
+  const inScope = CARDS.filter(c => state.sections.has(c[0]));
+  const knownCount = inScope.filter(c => known[cid(c)] === 1).length;
+  $("score").textContent = "Umím " + knownCount + " / " + inScope.length;
+  $("fill").style.width = (inScope.length ? knownCount / inScope.length * 100 : 0) + "%";
+
+  const empty = total === 0;
+  $("deck").hidden = empty;
+  $("done").hidden = !empty;
+  if (empty) {
+    $("pos").textContent = "";
+    if (!$("doneText").dataset.keep) $("doneText").textContent = state.sections.size === 0
+      ? "Vyber alespoň jedno téma."
+      : "V tomto výběru nic nezbývá. Skvělá práce.";
+    return;
+  }
+  delete $("doneText").dataset.keep;
+  const c = state.list[state.i];
+  $("pos").textContent = "Karta " + (state.i + 1) + " z " + total;
+  $("tag").textContent = SECTIONS[c[0]];
+  $("q").textContent = c[1];
+  $("a").textContent = c[2];
+  $("a").hidden = !state.shown;
+  $("hint").hidden = state.shown;
+  $("actions").hidden = !state.shown;
+  $("prev").disabled = state.i === 0;
+}
+
+function flip(){ state.shown = !state.shown; render(); }
+function go(d){
+  const n = state.i + d;
+  if (n < 0) return;
+  if (n >= state.list.length) {
+    state.list = [];
+    $("doneText").textContent = "Prošel(a) jsi všechny karty v tomto kole.";
+    $("doneText").dataset.keep = "1";
+    render(); return;
+  }
+  state.i = n; state.shown = false; render();
+}
+function mark(v){ known[cid(state.list[state.i])] = v; save(); go(1); }
+
+const wrap = $("sections");
+Object.keys(SECTIONS).forEach(k => {
+  const n = CARDS.filter(c => c[0] === k).length;
+  const b = document.createElement("button");
+  b.className = "chip"; b.textContent = SECTIONS[k] + " (" + n + ")"; b.setAttribute("aria-pressed","true");
+  b.onclick = () => {
+    if (state.sections.has(k)) state.sections.delete(k); else state.sections.add(k);
+    b.setAttribute("aria-pressed", state.sections.has(k));
+    build();
+  };
+  wrap.appendChild(b);
+});
+function toggle(btn, key){ btn.onclick = () => { state[key] = !state[key]; btn.setAttribute("aria-pressed", state[key]); build(); }; }
+toggle($("onlyUnknown"), "onlyUnknown");
+toggle($("shuffle"), "shuffle");
+
+$("card").onclick = flip;
+$("card").onkeydown = e => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); flip(); } };
+$("yes").onclick = () => mark(1);
+$("no").onclick = () => mark(0);
+$("next").onclick = () => go(1);
+$("prev").onclick = () => go(-1);
+$("restart").onclick = build;
+$("reset").onclick = () => { if (confirm("Opravdu smazat uložený postup?")) { known = {}; save(); build(); } };
+document.addEventListener("keydown", e => {
+  if (e.key === "ArrowRight") go(1);
+  if (e.key === "ArrowLeft") go(-1);
+});
+
+build();
+</script>
+</body>
+</html>
