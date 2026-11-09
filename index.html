@@ -37,6 +37,10 @@
   .bad{border-color:var(--bad);color:var(--bad)}
   .link{background:none;border:0;color:var(--muted);text-decoration:underline;cursor:pointer;font:inherit;font-size:.88rem;padding:8px 0}
   .done{text-align:center;padding:40px 10px}
+  .notes{margin-top:14px}
+  .notes label{display:flex;justify-content:space-between;color:var(--muted);font-size:.85rem;margin-bottom:6px}
+  .notes textarea{width:100%;min-height:90px;resize:vertical;font:inherit;font-size:.95rem;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .notes textarea:focus{outline:2px solid var(--accent);outline-offset:0}
   [hidden]{display:none!important}
 </style>
 </head>
@@ -68,6 +72,10 @@
     <div class="nav">
       <button class="btn" id="prev">← Předchozí</button>
       <button class="btn" id="next">Další →</button>
+    </div>
+    <div class="notes">
+      <label for="note"><span>Moje poznámky k této otázce</span><span id="noteState"></span></label>
+      <textarea id="note" placeholder="Sem si napiš poznámky, příklady, vlastní formulace…"></textarea>
     </div>
   </div>
 
@@ -203,10 +211,15 @@ const CARDS = [
 
 const SECTIONS = {is:"Informační systémy", db:"Databáze", tasks:"Úlohy 1–19", prog:"Programování"};
 const KEY = "procvicovani-v2";
+const NKEY = "procvicovani-v2-notes";
 
 let known = {};
 try { known = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch(e) { known = {}; }
 function save(){ try { localStorage.setItem(KEY, JSON.stringify(known)); } catch(e) {} }
+
+let notes = {};
+try { notes = JSON.parse(localStorage.getItem(NKEY) || "{}"); } catch(e) { notes = {}; }
+function saveNotes(){ try { localStorage.setItem(NKEY, JSON.stringify(notes)); return true; } catch(e) { return false; } }
 
 const state = { sections:new Set(Object.keys(SECTIONS)), onlyUnknown:false, shuffle:false, list:[], i:0, shown:false };
 const $ = id => document.getElementById(id);
@@ -249,7 +262,20 @@ function render(){
   $("hint").hidden = state.shown;
   $("actions").hidden = !state.shown;
   $("prev").disabled = state.i === 0;
+  $("note").value = notes[cid(c)] || "";
+  $("noteState").textContent = "";
 }
+
+let noteTimer;
+$("note").addEventListener("input", () => {
+  const c = state.list[state.i]; if (!c) return;
+  const v = $("note").value;
+  if (v.trim()) notes[cid(c)] = v; else delete notes[cid(c)];
+  $("noteState").textContent = saveNotes() ? "uloženo" : "nelze uložit";
+  clearTimeout(noteTimer);
+  noteTimer = setTimeout(() => { $("noteState").textContent = ""; }, 1500);
+});
+$("note").addEventListener("keydown", e => e.stopPropagation());
 
 function flip(){ state.shown = !state.shown; render(); }
 function go(d){
@@ -283,13 +309,15 @@ toggle($("shuffle"), "shuffle");
 
 $("card").onclick = flip;
 $("card").onkeydown = e => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); flip(); } };
+$("note").onclick = e => e.stopPropagation();
 $("yes").onclick = () => mark(1);
 $("no").onclick = () => mark(0);
 $("next").onclick = () => go(1);
 $("prev").onclick = () => go(-1);
 $("restart").onclick = build;
-$("reset").onclick = () => { if (confirm("Opravdu smazat uložený postup?")) { known = {}; save(); build(); } };
+$("reset").onclick = () => { if (confirm("Opravdu smazat uložený postup? (Poznámky zůstanou zachovány.)")) { known = {}; save(); build(); } };
 document.addEventListener("keydown", e => {
+  if (e.target && e.target.tagName === "TEXTAREA") return;
   if (e.key === "ArrowRight") go(1);
   if (e.key === "ArrowLeft") go(-1);
 });
